@@ -1,0 +1,10 @@
+# .gitignore — protection des artefacts sensibles
+# Ne jamais commiter .terraform/ (~675 Mo de binaires provider)
+.terraform/
+*.tfplan
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+# Ne jamais commiter de clés ou certificats
+*.pem
+.claude/
