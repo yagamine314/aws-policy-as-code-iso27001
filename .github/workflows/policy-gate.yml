@@ -1,0 +1,52 @@
+name: Policy-as-Code Security Gate
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  policy-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.6"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::687633314886:role/AIS-AWS-Security-Gate-Role
+          aws-region: eu-west-3
+
+      - name: Terraform Init
+        working-directory: terraform/compliant
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        working-directory: terraform/compliant
+        run: terraform plan -var="bucket_suffix=ais-ci" -out=plan.tfplan -input=false
+
+      - name: Export plan to JSON
+        working-directory: terraform/compliant
+        run: terraform show -json plan.tfplan > plan.json
+
+      - name: Install Conftest
+        run: |
+          curl -sSL -o conftest.tar.gz https://github.com/open-policy-agent/conftest/releases/download/v0.70.1/conftest_0.70.1_Linux_x86_64.tar.gz
+          tar xzf conftest.tar.gz
+          chmod +x conftest
+          sudo mv conftest /usr/local/bin/
+
+      - name: Conftest Policy Check
+        working-directory: terraform/compliant
+        run: conftest test plan.json -p ../../policy/
