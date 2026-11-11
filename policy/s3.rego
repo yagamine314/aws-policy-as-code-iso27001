@@ -3,14 +3,16 @@ package main
 deny contains msg if {
 	rc := input.resource_changes[_]
 	rc.type == "aws_s3_bucket_public_access_block"
-	rc.change.after.block_public_acls == false
+	some setting in ["block_public_acls", "ignore_public_acls"]
+	rc.change.after[setting] == false
 	msg := sprintf("A.8.3 violated: %s does not block public ACLs", [rc.address])
 }
 
 deny contains msg if {
 	rc := input.resource_changes[_]
 	rc.type == "aws_s3_bucket_public_access_block"
-	rc.change.after.restrict_public_buckets == false
+	some setting in ["block_public_policy", "restrict_public_buckets"]
+	rc.change.after[setting] == false
 	msg := sprintf("A.8.3 violated: %s does not restrict public bucket policies", [rc.address])
 }
 
